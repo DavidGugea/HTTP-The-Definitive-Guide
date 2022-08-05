@@ -233,11 +233,18 @@ With the IP address and port number, a client can easily communicate via TCP/IP.
 Here are the steps:
 
 a. The browser extracts the server’s hostname from the URL.
+
 b. The browser converts the server’s hostname into the server’s IP address.
+
 c. The browser extracts the port number (if any) from the URL.
+
 d. The browser establishes a TCP connection with the web server.
+
+
 e. The browser sends an HTTP request message to the server.
+
 f. The server sends an HTTP response back to the browser.
+
 g. The connection is closed, and the browser displays the document.
 
 ![Figure1_10](ScreenshotsForNotes/Chapter1/Figure1_10.PNG)
