@@ -1653,3 +1653,13 @@ In general, applications implementing graceful closes will first close their out
 
 Unfortunately, there is no guarantee that the peer implements or checks for half closes. For this reason, applications wanting to close gracefully should half close their output channels and periodically check the status of their input channels (looking for data or for the end of the stream). If the input channel isn’t closed by the peer within some timeout period, the application may force connection close to save resources
 
+---
+---
+
+# Part II: HTTP Architecture
+
+---
+---
+
+# 5. Web Servers
+
