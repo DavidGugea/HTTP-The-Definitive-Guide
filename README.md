@@ -1663,3 +1663,287 @@ Unfortunately, there is no guarantee that the peer implements or checks for half
 
 # 5. Web Servers
 
+## Web Servers Come in All Shapes and Sizes
+
+A web server processes HTTP requests and serves responses. The term “web server” can refer either to web server software or to the particular device or computer dedicated to serving the web pages.
+
+Web servers comes in all flavors, shapes, and sizes. There are trivial 10-line Perl script web servers, 50-MB secure commerce engines, and tiny servers-on-a-card. But whatever the functional differences, all web servers receive HTTP requests for resources and serve content back to the clients (look back to Figure 1-5).
+
+## Web Server Implementations
+
+Web servers implement HTTP and the related TCP connection handling. They also manage the resources served by the web server and provide administrative features to configure, control, and enhance the web server.
+
+The web server logic implements the HTTP protocol, manages web resources, and provides web server administrative capabilities. The web server logic shares responsibilities for managing TCP connections with the operating system. The underlying operating system manages the hardware details of the underlying computer system and provides TCP/IP network support, filesystems to hold web resources, and process management to control current computing activities.
+
+Web servers are available in many forms:
+
+* You can install and run general-purpose software web servers on standard computer systems.
+
+* If you don’t want the hassle of installing software, you can purchase a web server appliance, in which the software comes preinstalled and preconfigured on a computer, often in a snazzy-looking chassis.
+
+* Given the miracles of microprocessors, some companies even offer embedded web servers implemented in a small number of computer chips, making them perfect administration consoles for consumer devices.
+
+## General-Purpose Software Web Servers
+
+General-purpose software web servers run on standard, network-enabled computer systems. You can choose open source software (such as Apache or W3C’s Jigsaw) or commercial software (such as Microsoft’s and iPlanet’s web servers). Web server software is available for just about every computer and operating system.
+
+## Web Server Appliances
+
+Web server appliances are prepackaged software/hardware solutions. The vendor preinstalls a software server onto a vendor-chosen computer platform and preconfigures the software
+
+Appliance solutions remove the need to install and configure software and often greatly simplify administration. However, the web server often is less flexible and feature-rich, and the server hardware is not easily repurposeable or upgradable.
+
+## Embedded Web Servers
+
+Embedded servers are tiny web servers intended to be embedded into consumer products (e.g., printers or home appliances). Embedded web servers allow users to administer their consumer devices using a convenient web browser interface.
+
+Some embedded web servers can even be implemented in less than one square inch, but they usually offer a minimal feature set.
+
+## What Real Web Servers Do
+
+State-ofthe- art commercial web servers are much more complicated, but they do perform several common tasks, as shown in Figure 5-3:
+
+1. Set up connection—accept a client connection, or close if the client is unwanted.
+
+2. Receive request—read an HTTP request message from the network.
+
+3. Process request—interpret the request message and take action.
+
+4. Access resource—access the resource specified in the message.
+
+5. Construct response—create the HTTP response message with the right headers.
+
+6. Send response—send the response back to the client.
+
+7. Log transaction—place notes about the completed transaction in a log file.
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_3.PNG)
+
+## Step 1: Accepting Client Connections
+
+If a client already has a persistent connection open to the server, it can use that connection to send its request. Otherwise, the client needs to open a new connection to the server (refer back to Chapter 4 to review HTTP connection-management technology).
+
+### Handling New Connections
+
+When a client requests a TCP connection to the web server, the web server establishes the connection and determines which client is on the other side of the connection, extracting the IP address from the TCP connection.* Once a new connection is established and accepted, the server adds the new connection to its list of existing web server connections and prepares to watch for data on the connection.
+
+The web server is free to reject and immediately close any connection. Some web servers close connections because the client IP address or hostname is unauthorized or is a known malicious client. Other identification techniques can also be used.
+
+### Client Hostname Identification
+
+Most web servers can be configured to convert client IP addresses into client hostnames, using “reverse DNS.” Web servers can use the client hostname for detailed access control and logging. Be warned that hostname lookups can take a very long time, slowing down web transactions. Many high-capacity web servers either disable hostname resolution or enable it only for particular content.
+
+### Determining the Client User Through ident
+
+Some web servers also support the IETF ident protocol. The ident protocol lets servers find out what username initiated an HTTP connection. This information is particularly useful for web server logging—the second field of the popular Common Log Format contains the ident username of each HTTP request.*
+
+If a client supports the ident protocol, the client listens on TCP port 113 for ident requests. Figure 5-4 shows how the ident protocol works. In Figure 5-4a, the client opens an HTTP connection. The server then opens its own connection back to the client’s identd server port (113), sends a simple request asking for the username corresponding to the new connection (specified by client and server port numbers), and retrieves from the client the response containing the username.
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_4.PNG)
+
+ident can work inside organizations, but it does not work well across the public Internet for many reasons, including:
+
+* Many client PCs don’t run the identd Identification Protocol daemon software.
+
+* The ident protocol significantly delays HTTP transactions.
+
+* Many firewalls won’t permit incoming ident traffic.
+
+* The ident protocol is insecure and easy to fabricate.
+
+* The ident protocol doesn’t support virtual IP addresses well.
+
+* There are privacy concerns about exposing client usernames.
+
+## Step 2: Receiving Request Messages
+
+As the data arrives on connections, the web server reads out the data from the network connection and parses out the pieces of the request message (Figure 5-5).
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_5.PNG)
+
+When parsing the request message, the web server:
+
+* Parses the request line looking for the request method, the specified resource identifier (URI), and the version number,* each separated by a single space, and ending with a carriage-return line-feed (CRLF) sequence†
+
+* Reads the message headers, each ending in CRLF
+
+* Detects the end-of-headers blank line, ending in CRLF (if present)
+
+* Reads the request body, if any (length specified by the Content-Length header)
+
+When parsing request messages, web servers receive input data erratically from the network. The network connection can stall at any point. The web server needs to read data from the network and temporarily store the partial message data in memory until it receives enough data to parse it and make sense of it.
+
+### Internal Representations of Messages
+
+Some web servers also store the request messages in internal data structures that make the message easy to manipulate. For example, the data structure might contain pointers and lengths of each piece of the request message, and the headers might be stored in a fast lookup table so the specific values of particular headers can be accessed quickly (Figure 5-6).
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_6.PNG)
+
+### Connection Input/Output Processing Architectures
+
+High-performance web servers support thousands of simultaneous connections. These connections let the web server communicate with clients around the world, each with one or more connections open to the server. Some of these connections may be sending requests rapidly to the web server, while other connections trickle requests slowly or infrequently, and still others are idle, waiting quietly for some future activity.
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_7.PNG)
+
+Web servers constantly watch for new web requests, because requests can arrive at any time. Different web server architectures service requests in different ways, as Figure 5-7 illustrates:
+
+* *Single-threaded web servers*(Figure 5-7a)
+
+    * Single-threaded web servers process one request at a time until completion. When the transaction is complete, the next connection is processed. This architecture is simple to implement, but during processing, all the other connections are ignored. This creates serious performance problems and is appropriate only for low-load servers and diagnostic tools like type-o-serve.
+
+* *Multiprocess and multithreaded web servers* (Figure 5-7b)
+
+    * Multiprocess and multithreaded web servers dedicate multiple processes or higher-efficiency threads to process requests simultaneously.* The threads/ processes may be created on demand or in advance.† Some servers dedicate a thread/process for every connection, but when a server processes hundreds, thousands, or even tens of thousands of simultaneous connections, the resulting number of processes or threads may consume too much memory or system resources. Thus, many multithreaded web servers put a limit on the maximum number of threads/processes.
+
+* *Multiplexed I/O servers* (Figure 5-7c)
+
+    * To support large numbers of connections, many web servers adopt multiplexed architectures. In a multiplexed architecture, all the connections are simultaneously watched for activity. When a connection changes state (e.g., when data becomes available or an error condition occurs), a small amount of processing is performed on the connection; when that processing is complete, the connection is returned to the open connection list for the next change in state. Work is done on a connection only when there is something to be done; threads and processes are not tied up waiting on idle connections.
+
+* *Multiplexed multithreaded web servers* (Figure 5-7d)
+
+    * Some systems combine multithreading and multiplexing to take advantage of multiple CPUs in the computer platform. Multiple threads (often one per physical processor) each watch the open connections (or a subset of the open connections) and perform a small amount of work on each connection.
+
+## Step 3: Processing Requests
+
+Once the web server has received a request, it can process the request using the method, resource, headers, and optional body.
+
+Some methods (e.g., POST) require entity body data in the request message. Other methods (e.g., OPTIONS) allow a request body but don’t require one. A few methods (e.g., GET) forbid entity body data in request messages.
+
+## Step 4: Mapping and Accessing Resources
+
+Web servers are resource servers. They deliver precreated content, such as HTML pages or JPEG images, as well as dynamic content from resource-generating applications running on the servers.
+
+Before the web server can deliver content to the client, it needs to identify the source of the content, by mapping the URI from the request message to the proper content or content generator on the web server.
+
+### Docroots
+
+Web servers support different kinds of resource mapping, but the simplest form of resource mapping uses the request URI to name a file in the web server’s filesystem. Typically, a special folder in the web server filesystem is reserved for web content. This folder is called the document root, or docroot. The web server takes the URI from the request message and appends it to the document root.
+
+In Figure 5-8, a request arrives for /specials/saw-blade.gif. The web server in this example has document root /usr/local/httpd/files. The web server returns the file /usr/ local/httpd/files/specials/saw-blade.gif.
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_8.PNG)
+
+### Virtually hosted docroots
+
+Virtually hosted web servers host multiple web sites on the same web server, giving each site its own distinct document root on the server. A virtually hosted web server identifies the correct document root to use from the IP address or hostname in the URI or the Host header. This way, two web sites hosted on the same web server can have completely distinct content, even if the request URIs are identical.
+
+In Figure 5-9, the server hosts two sites: www.joes-hardware.com and www.marysantiques. com. The server can distinguish the web sites using the HTTP Host header, or from distinct IP addresses.
+
+* When request A arrives, the server fetches the file for /docs/joe/index.html.
+
+* When request B arrives, the server fetches the file for /docs/mary/index.html.
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_9.PNG)
+
+### User home directory docroots
+
+Another common use of docroots gives people private web sites on a web server. A typical convention maps URIs whose paths begin with a slash and tilde (/~) followed by a username to a private document root for that user. The private docroot is often the folder called public_html inside that user’s home directory, but it can be configured differently (Figure 5-10).
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_10.PNG)
+
+### Directory Listings
+
+A web server can receive requests for directory URLs, where the path resolves to a directory, not a file. Most web servers can be configured to take a few different actions when a client requests a directory URL:
+
+* Return an error.
+
+* Return a special, default, “index file” instead of the directory.
+
+* Scan the directory, and return an HTML page containing the contents.
+
+Most web servers look for a file named index.html or index.htm inside a directory to represent that directory. If a user requests a URL for a directory and the directory contains a file named index.html (or index.htm), the server will return the contents of that file.
+
+### Dynamic Content Resource Mapping
+
+Web servers also can map URIs to dynamic resources—that is, to programs that generate content on demand (Figure 5-11). In fact, a whole class of web servers called application servers connect web servers to sophisticated backend applications. The web server needs to be able to tell when a resource is a dynamic resource, where the dynamic content generator program is located, and how to run the program. Most web servers provide basic mechanisms to identify and map dynamic resources.
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_11.PNG)
+
+### Server-Side Includes (SSI)
+
+Many web servers also provide support for server-side includes. If a resource is flagged as containing server-side includes, the server processes the resource contents before sending them to the client.
+
+The contents are scanned for certain special patterns (often contained inside special HTML comments), which can be variable names or embedded scripts. The special patterns are replaced with the values of variables or the output of executable scripts. This is an easy way to create dynamic content.
+
+### Access Controls
+
+Web servers also can assign access controls to particular resources. When a request arrives for an access-controlled resource, the web server can control access based on the IP address of the client, or it can issue a password challenge to get access to the resource.
+
+## Step 5: Building Responses
+
+Once the web server has identified the resource, it performs the action described in the request method and returns the response message. The response message contains a response status code, response headers, and a response body if one was generated. HTTP response codes were detailed in “Status Codes” in Chapter 3.
+
+### Response Entities
+
+If the transaction generated a response body, the content is sent back with the response message. If there was a body, the response message usually contains:
+
+* A Content-Type header, describing the MIME type of the response body
+
+* A Content-Length header, describing the size of the response body
+
+* The actual message body content
+
+### MIME Typing
+
+The web server is responsible for determining the MIME type of the response body. There are many ways to configure servers to associate MIME types with resources:
+
+![Figure](ScreenshotsForNotes/Chapter5/Figure_5_12.PNG)
+
+* *mime.types*
+
+    * The web server can use the extension of the filename to indicate MIME type. The web server scans a file containing MIME types for each extension to compute the MIME type for each resource. This extension-based type association is the most common; it is illustrated in Figure 5-12.
+
+* *Magic typing*
+
+    * The Apache web server can scan the contents of each resource and patternmatch the content against a table of known patterns (called the magic file) to determine the MIME type for each file. This can be slow, but it is convenient, especially if the files are named without standard extensions.
+
+* *Explicit typing*
+
+    * Web servers can be configured to force particular files or directory contents to have a MIME type, regardless of the file extension or contents.
+
+* *Type negotiation*
+
+    * Some web servers can be configured to store a resource in multiple document formats. In this case, the web server can be configured to determine the “best” format to use (and the associated MIME type) by a negotiation process with the user. We’ll discuss this in Chapter 17.
+
+Web servers also can be configured to associate particular files with MIME types.
+
+### Redirection
+
+Web servers sometimes return redirection responses instead of success messages. A web server can redirect the browser to go elsewhere to perform the request. A redirection response is indicated by a 3XX return code. The Location response header contains a URI for the new or preferred location of the content. Redirects are useful for:
+
+* *Permanently moved resources*
+
+    * A resource might have been moved to a new location, or otherwise renamed, giving it a new URL. The web server can tell the client that the resource has been renamed, and the client can update any bookmarks, etc. before fetching the resource from its new location. The status code 301 Moved Permanently is used for this kind of redirect.
+
+* *Temporarily moved resources*
+
+    * If a resource is temporarily moved or renamed, the server may want to redirect the client to the new location. But, because the renaming is temporary, the server wants the client to come back with the old URL in the future and not to update any bookmarks. The status codes 303 See Other and 307 Temporary Redirect are used for this kind of redirect.
+
+* *URL augmentation*
+
+    * Servers often use redirects to rewrite URLs, often to embed context. When the request arrives, the server generates a new URL containing embedded state information and redirects the user to this new URL.* The client follows the redirect, reissuing the request, but now including the full, state-augmented URL. This is a useful way of maintaining state across transactions. The status codes 303 See Other and 307 Temporary Redirect are used for this kind of redirect.
+
+* *Load balancing*
+
+    * If an overloaded server gets a request, the server can redirect the client to a less heavily loaded server. The status codes 303 See Other and 307 Temporary Redirect are used for this kind of redirect.
+
+* *Server affinity*
+
+    * Web servers may have local information for certain users; a server can redirect the client to a server that contains information about the client. The status codes 303 See Other and 307 Temporary Redirect are used for this kind of redirect.
+
+* *Canonicalizing directory names*
+
+    * When a client requests a URI for a directory name without a trailing slash, most web servers redirect the client to a URI with the slash added, so that relative links work correctly.
+
+## Step 6: Sending Responses
+
+Web servers face similar issues sending data across connections as they do receiving. The server may have many connections to many clients, some idle, some sending data to the server, and some carrying response data back to the clients.
+
+The server needs to keep track of the connection state and handle persistent connections with special care. For nonpersistent connections, the server is expected to close its side of the connection when the entire message is sent.
+
+For persistent connections, the connection may stay open, in which case the server needs to be extra cautious to compute the Content-Length header correctly, or the client will have no way of knowing when a response ends (see Chapter 4).
+
+## Step 7: Logging
+
+Finally, when a transaction is complete, the web server notes an entry into a log file, describing the transaction performed. Most web servers provide several configurable forms of logging. Refer to Chapter 21 for more details
+
